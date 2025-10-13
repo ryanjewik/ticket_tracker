@@ -1,0 +1,10 @@
+apiVersion: 1
+providers:
+  - name: 'TicketWatch Dashboards'
+    orgId: 1
+    folder: 'TicketWatch'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/provisioning/dashboards/ticketwatch

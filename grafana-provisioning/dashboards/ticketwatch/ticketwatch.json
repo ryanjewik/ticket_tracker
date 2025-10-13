@@ -1,20 +1,4 @@
 {
-  "__inputs": [
-    {
-      "name": "DS_PROMETHEUS",
-      "label": "Prometheus",
-      "description": "",
-      "type": "datasource",
-      "pluginId": "prometheus",
-      "pluginName": "Prometheus"
-    }
-  ],
-  "__requires": [
-    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.x" },
-    { "type": "panel", "id": "timeseries", "name": "Time series", "version": "" },
-    { "type": "panel", "id": "stat", "name": "Stat", "version": "" },
-    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "2.x" }
-  ],
   "annotations": {
     "list": [
       {
@@ -45,7 +29,7 @@
           "refId": "A",
           "expr": "min by (source) (ticket_min_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\"})",
           "legendFormat": "{{source}}",
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ],
       "options": {
@@ -82,7 +66,7 @@
           "refId": "A",
           "expr": "avg by (source) (ticket_avg_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\"})",
           "legendFormat": "{{source}}",
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ],
       "options": {
@@ -116,7 +100,7 @@
           "refId": "A",
           "expr": "ticket_min_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\"}",
           "legendFormat": "{{source}}",
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ]
     },
@@ -137,7 +121,7 @@
           "refId": "A",
           "expr": "ticket_avg_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\"}",
           "legendFormat": "{{source}}",
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ]
     },
@@ -158,7 +142,7 @@
           "refId": "A",
           "expr": "ticket_median_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\"}",
           "legendFormat": "{{source}}",
-          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" }
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ]
     }
@@ -173,7 +157,7 @@
         "name": "artist",
         "type": "query",
         "query": "label_values(ticket_min_price, artist)",
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+  "datasource": { "type": "prometheus", "uid": "prometheus" },
         "refresh": 1,
         "hide": 0,
         "includeAll": false,
@@ -183,7 +167,7 @@
         "name": "venue",
         "type": "query",
         "query": "label_values(ticket_min_price, venue)",
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+  "datasource": { "type": "prometheus", "uid": "prometheus" },
         "refresh": 1,
         "hide": 0,
         "includeAll": false,
@@ -193,7 +177,7 @@
         "name": "date",
         "type": "query",
         "query": "label_values(ticket_min_price, date)",
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+  "datasource": { "type": "prometheus", "uid": "prometheus" },
         "refresh": 1,
         "hide": 0,
         "includeAll": false,
@@ -203,7 +187,7 @@
         "name": "source",
         "type": "query",
         "query": "label_values(ticket_min_price, source)",
-        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+  "datasource": { "type": "prometheus", "uid": "prometheus" },
         "refresh": 1,
         "hide": 2,
         "includeAll": true,

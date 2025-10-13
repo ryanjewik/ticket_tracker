@@ -11,7 +11,7 @@ groups:
         data:
           - refId: A
             datasourceUid: prometheus
-            relativeTimeRange: { from: 5m, to: 0m }
+            relativeTimeRange: { from: 300, to: 0 }
             model:
               datasource: { type: prometheus, uid: prometheus }
               expr: ticket_min_price{artist="$artist", venue="$venue", date="$date", source="Best"}
@@ -36,7 +36,7 @@ groups:
         data:
           - refId: A
             datasourceUid: prometheus
-            relativeTimeRange: { from: 5m, to: 0m }
+            relativeTimeRange: { from: 300, to: 0 }
             model:
               datasource: { type: prometheus, uid: prometheus }
               expr: ticket_avg_price{artist="$artist", venue="$venue", date="$date", source="Best"}
@@ -44,7 +44,7 @@ groups:
               refId: A
           - refId: B
             datasourceUid: prometheus
-            relativeTimeRange: { from: 5m, to: 0m }
+            relativeTimeRange: { from: 300, to: 0 }
             model:
               datasource: { type: prometheus, uid: prometheus }
               expr: A / (ticket_avg_price{artist="$artist", venue="$venue", date="$date", source="Best"} offset 1h)
