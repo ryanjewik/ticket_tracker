@@ -1,1 +1,55 @@
 services:
+  app:
+    build: .
+    container_name: ticketwatch-app
+    env_file:
+      - .env
+    environment:
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  prom-init:
+    image: busybox
+    command: ["sh","-c","mkdir -p /prometheus && chown -R 65534:65534 /prometheus && ls -aln /prometheus"]
+    volumes:
+      - promdata:/prometheus
+    restart: "no"
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: prometheus
+    user: "65534:65534"   # non-root (good for prod)
+    depends_on:
+      prom-init:
+        condition: service_completed_successfully
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=180d
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - promdata:/prometheus
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafdata:/var/lib/grafana
+      - ./grafana-provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  promdata:
+  grafdata:

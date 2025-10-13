@@ -1,0 +1,63 @@
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: ticketwatch-rules
+    folder: TicketWatch
+    interval: 1m
+    rules:
+      - uid: tw-min-below-70
+        title: "Min price <= $70 (Best)"
+        condition: A
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 5m, to: 0m }
+            model:
+              datasource: { type: prometheus, uid: prometheus }
+              expr: ticket_min_price{artist="$artist", venue="$venue", date="$date", source="Best"}
+              interval: ""
+              legendFormat: ""
+              refId: A
+        annotations:
+          summary: "Min price dipped below $70"
+        labels:
+          severity: warning
+        for: 2m
+        isPaused: false
+        noDataState: NoData
+        execErrState: Error
+        thresholds:
+          - type: lt
+            value: 70
+
+      - uid: tw-avg-drop-15
+        title: "Avg price drop >=15% (Best)"
+        condition: B
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 5m, to: 0m }
+            model:
+              datasource: { type: prometheus, uid: prometheus }
+              expr: ticket_avg_price{artist="$artist", venue="$venue", date="$date", source="Best"}
+              interval: ""
+              refId: A
+          - refId: B
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 5m, to: 0m }
+            model:
+              datasource: { type: prometheus, uid: prometheus }
+              expr: A / (ticket_avg_price{artist="$artist", venue="$venue", date="$date", source="Best"} offset 1h)
+              interval: ""
+              refId: B
+        annotations:
+          summary: "Average price dropped ≥15% vs 1h ago"
+        labels:
+          severity: info
+        for: 2m
+        isPaused: false
+        noDataState: NoData
+        execErrState: Error
+        thresholds:
+          - type: lt
+            value: 0.85
