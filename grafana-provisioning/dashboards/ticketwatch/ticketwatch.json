@@ -22,13 +22,13 @@
   "panels": [
     {
       "type": "stat",
-      "title": "Best Current Min (by source)",
+      "title": "Current Min (SeatGeek)",
       "gridPos": { "h": 4, "w": 8, "x": 0, "y": 0 },
       "targets": [
         {
           "refId": "A",
-          "expr": "min by (source) (ticket_min_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\"})",
-          "legendFormat": "{{source}}",
+          "expr": "min(ticket_min_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\", source=\"SeatGeek\"})",
+          "legendFormat": "SeatGeek",
           "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ],
@@ -36,9 +36,9 @@
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
         "orientation": "horizontal",
         "textMode": "auto",
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
-        "justifyMode": "auto",
+        "justifyMode": "center",
         "wideLayout": true
       },
       "fieldConfig": {
@@ -46,26 +46,28 @@
           "unit": "currencyUSD",
           "decimals": 2,
           "thresholds": {
-            "mode": "absolute",
+            "mode": "gradient",
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "orange", "value": 70 },
-              { "color": "green", "value": 90 }
+              { "color": "#00fff7", "value": null },
+              { "color": "#ff00c8", "value": 70 },
+              { "color": "#ffe600", "value": 90 }
             ]
-          }
+          },
+          "color": { "mode": "thresholds" },
+          "mappings": []
         },
         "overrides": []
       }
     },
     {
       "type": "stat",
-      "title": "Current Avg (by source)",
+      "title": "Current Avg (SeatGeek)",
       "gridPos": { "h": 4, "w": 8, "x": 8, "y": 0 },
       "targets": [
         {
           "refId": "A",
-          "expr": "avg by (source) (ticket_avg_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\"})",
-          "legendFormat": "{{source}}",
+          "expr": "avg(ticket_avg_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\", source=\"SeatGeek\"})",
+          "legendFormat": "SeatGeek",
           "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ],
@@ -73,22 +75,42 @@
         "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
         "orientation": "horizontal",
         "textMode": "auto",
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "none",
-        "justifyMode": "auto",
+        "justifyMode": "center",
         "wideLayout": true
       },
       "fieldConfig": {
-        "defaults": { "unit": "currencyUSD", "decimals": 2 },
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "gradient",
+            "steps": [
+              { "color": "#00fff7", "value": null },
+              { "color": "#ff00c8", "value": 70 },
+              { "color": "#ffe600", "value": 90 }
+            ]
+          },
+          "color": { "mode": "thresholds" },
+          "mappings": []
+        },
         "overrides": []
       }
     },
     {
       "type": "timeseries",
-      "title": "Min Price over time",
+      "title": "Min Price over time (SeatGeek)",
       "gridPos": { "h": 10, "w": 12, "x": 0, "y": 4 },
       "fieldConfig": {
-        "defaults": { "unit": "currencyUSD", "decimals": 2 },
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "color": { "mode": "fixed", "fixedColor": "#00fff7" },
+          "custom": {
+            "fillOpacity": 0
+          }
+        },
         "overrides": []
       },
       "options": {
@@ -98,18 +120,25 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "ticket_min_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\"}",
-          "legendFormat": "{{source}}",
+          "expr": "ticket_min_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\", source=\"SeatGeek\"}",
+          "legendFormat": "SeatGeek",
           "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ]
     },
     {
       "type": "timeseries",
-      "title": "Average Price over time",
+      "title": "Average Price over time (SeatGeek)",
       "gridPos": { "h": 10, "w": 12, "x": 12, "y": 4 },
       "fieldConfig": {
-        "defaults": { "unit": "currencyUSD", "decimals": 2 },
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "color": { "mode": "fixed", "fixedColor": "#ffe600" },
+          "custom": {
+            "fillOpacity": 0
+          }
+        },
         "overrides": []
       },
       "options": {
@@ -119,18 +148,25 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "ticket_avg_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\"}",
-          "legendFormat": "{{source}}",
+          "expr": "ticket_avg_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\", source=\"SeatGeek\"}",
+          "legendFormat": "SeatGeek",
           "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ]
     },
     {
       "type": "timeseries",
-      "title": "Median Price over time",
+      "title": "Median Price over time (SeatGeek)",
       "gridPos": { "h": 10, "w": 12, "x": 0, "y": 14 },
       "fieldConfig": {
-        "defaults": { "unit": "currencyUSD", "decimals": 2 },
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "color": { "mode": "fixed", "fixedColor": "#ff00c8" },
+          "custom": {
+            "fillOpacity": 0
+          }
+        },
         "overrides": []
       },
       "options": {
@@ -140,8 +176,8 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "ticket_median_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\"}",
-          "legendFormat": "{{source}}",
+          "expr": "ticket_median_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\", source=\"SeatGeek\"}",
+          "legendFormat": "SeatGeek",
           "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ]
