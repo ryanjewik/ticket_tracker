@@ -41,6 +41,14 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_SMTP_ENABLED: true
+      GF_SMTP_HOST: smtp.ryanhideosmtp.com:587
+      GF_SMTP_FROM_ADDRESS: contact@ryanhideosmtp.com
+      GF_SMTP_SKIP_VERIFY: true
+      GF_SMTP_STARTTLS_POLICY: 'OpportunisticStartTLS'
+      # Uncomment and set these if your SMTP server requires authentication:
+      # GF_SMTP_USER: your_smtp_username
+      # GF_SMTP_PASSWORD: your_smtp_password
     ports:
       - "3000:3000"
     volumes:

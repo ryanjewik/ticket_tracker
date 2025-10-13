@@ -6,5 +6,5 @@ contactPoints:
       - uid: email-default
         type: email
         settings:
-          addresses: "you@yourdomain.com"
-        disableResolveMessage: false
+          addresses: "ryanjewik25@gmail.com"
+          disableResolveMessage: false
