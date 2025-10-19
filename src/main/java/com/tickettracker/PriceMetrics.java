@@ -15,7 +15,7 @@ public class PriceMetrics {
   private final Map<String, AtomicReference<Double>> median = new ConcurrentHashMap<>();
 
   public PriceMetrics(MeterRegistry reg, TrackerProperties cfg) {
-    for (String source : new String[]{"SeatGeek", "Best"}) {
+    for (String source : new String[]{"Best"}) {
       min.put(source, registerGauge(reg, "ticket_min_price", cfg, source));
       avg.put(source, registerGauge(reg, "ticket_avg_price", cfg, source));
       median.put(source, registerGauge(reg, "ticket_median_price", cfg, source));

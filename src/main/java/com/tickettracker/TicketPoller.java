@@ -1,5 +1,7 @@
+
 package com.tickettracker;
 
+import java.time.LocalDate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -25,21 +27,37 @@ public class TicketPoller {
     poll();
   }
 
-  @Scheduled(cron = "${ticketwatch.poll.cron}")
-  public void poll() {
-    log.info("Polling SeatGeek… (artist='{}', venue='{}', date='{}')", cfg.getArtist(), cfg.getVenue(), cfg.getDate());
+    @Scheduled(cron = "${ticketwatch.poll.cron}")
+    public void poll() {
+      log.info("Polling ticket platforms… (artist='{}', venue='{}', date='{}')", cfg.getArtist(), cfg.getVenue(), cfg.getDate());
+      var statsByPlatform = upstream.aggregateStats(cfg.getArtist(), cfg.getVenue(), LocalDate.parse(cfg.getDate()));
 
-    PriceStats sg = null;
-    try { sg = upstream.fetchSeatGeek(); }
-    catch (Exception e) { log.warn("SeatGeek fetch failed: {}", e.toString()); }
+      Double bestMin = null, bestAvg = null, bestMedian = null;
+      String bestSource = null;
 
-    if (sg != null) {
-      metrics.set("SeatGeek", sg.min(), sg.avg(), sg.median());
-      // “Best” == SeatGeek in this simplified build
-      metrics.set("Best", sg.min(), sg.avg(), sg.median());
-      log.info("SeatGeek -> min={}, avg={}, median={}", sg.min(), sg.avg(), sg.median());
-    } else {
-      log.info("SeatGeek -> no data this poll (likely no client_id or no stats yet)");
+      for (var entry : statsByPlatform.entrySet()) {
+        String platform = entry.getKey();
+        PriceStats stats = entry.getValue();
+        if (stats != null && stats.min() != null) {
+          metrics.set(platform, stats.min(), stats.avg(), stats.median());
+          log.info("{} -> min={}, avg={}, median={}", platform, stats.min(), stats.avg(), stats.median());
+          if (bestMin == null || stats.min() < bestMin) {
+            bestMin = stats.min();
+            bestAvg = stats.avg();
+            bestMedian = stats.median();
+            bestSource = platform;
+          }
+        } else {
+          log.info("{} -> no data this poll", platform);
+        }
+      }
+
+      // Set 'Best' metrics to the lowest min price found
+      if (bestMin != null) {
+        metrics.set("Best", bestMin, bestAvg, bestMedian);
+        log.info("Best ({}) -> min={}, avg={}, median={}", bestSource, bestMin, bestAvg, bestMedian);
+      } else {
+        log.info("Best -> no data this poll");
+      }
     }
-  }
 }

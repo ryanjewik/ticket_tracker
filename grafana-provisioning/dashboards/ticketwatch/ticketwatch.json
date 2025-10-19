@@ -23,41 +23,77 @@
     {
       "type": "stat",
       "title": "Current Min (SeatGeek)",
-      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 0 },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
       "targets": [
         {
           "refId": "A",
-          "expr": "min(ticket_min_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\", source=\"SeatGeek\"})",
+          "expr": "ticket_min_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\", source=\"SeatGeek\"}",
           "legendFormat": "SeatGeek",
           "datasource": { "type": "prometheus", "uid": "prometheus" }
         }
       ],
-      "options": {
-        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
-        "orientation": "horizontal",
-        "textMode": "auto",
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "center",
-        "wideLayout": true
-      },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "currencyUSD",
-          "decimals": 2,
-          "thresholds": {
-            "mode": "gradient",
-            "steps": [
-              { "color": "#00fff7", "value": null },
-              { "color": "#ff00c8", "value": 70 },
-              { "color": "#ffe600", "value": 90 }
-            ]
-          },
-          "color": { "mode": "thresholds" },
-          "mappings": []
-        },
-        "overrides": []
-      }
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "horizontal", "textMode": "auto", "colorMode": "background", "graphMode": "none", "justifyMode": "center", "wideLayout": true },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2 }, "overrides": [] }
+    },
+    {
+      "type": "stat",
+      "title": "Current Min (Ticketmaster)",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "ticket_min_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\", source=\"Ticketmaster\"}",
+          "legendFormat": "Ticketmaster",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "horizontal", "textMode": "auto", "colorMode": "background", "graphMode": "none", "justifyMode": "center", "wideLayout": true },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2 }, "overrides": [] }
+    },
+    {
+      "type": "stat",
+      "title": "Current Min (StubHub)",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "ticket_min_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\", source=\"StubHub\"}",
+          "legendFormat": "StubHub",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "horizontal", "textMode": "auto", "colorMode": "background", "graphMode": "none", "justifyMode": "center", "wideLayout": true },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2 }, "overrides": [] }
+    },
+    {
+      "type": "stat",
+      "title": "Current Min (VividSeats)",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "ticket_min_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\", source=\"VividSeats\"}",
+          "legendFormat": "VividSeats",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "horizontal", "textMode": "auto", "colorMode": "background", "graphMode": "none", "justifyMode": "center", "wideLayout": true },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2 }, "overrides": [] }
+    },
+    {
+      "type": "stat",
+      "title": "Best Current Min",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "ticket_min_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\", source=\"Best\"}",
+          "legendFormat": "Best",
+          "datasource": { "type": "prometheus", "uid": "prometheus" }
+        }
+      ],
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "orientation": "horizontal", "textMode": "auto", "colorMode": "background", "graphMode": "none", "justifyMode": "center", "wideLayout": true },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2 }, "overrides": [] }
     },
     {
       "type": "stat",
@@ -100,86 +136,32 @@
     },
     {
       "type": "timeseries",
-      "title": "Min Price over time (SeatGeek)",
-      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 4 },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "currencyUSD",
-          "decimals": 2,
-          "color": { "mode": "fixed", "fixedColor": "#00fff7" },
-          "custom": {
-            "fillOpacity": 0
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "single" }
-      },
+      "title": "Min Price over time (All Platforms)",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2 }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
       "targets": [
-        {
-          "refId": "A",
-          "expr": "ticket_min_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\", source=\"SeatGeek\"}",
-          "legendFormat": "SeatGeek",
-          "datasource": { "type": "prometheus", "uid": "prometheus" }
-        }
+        { "refId": "A", "expr": "ticket_min_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\", source=~\"SeatGeek|Ticketmaster|StubHub|VividSeats\"}", "legendFormat": "{{source}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
       ]
     },
     {
       "type": "timeseries",
-      "title": "Average Price over time (SeatGeek)",
-      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 4 },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "currencyUSD",
-          "decimals": 2,
-          "color": { "mode": "fixed", "fixedColor": "#ffe600" },
-          "custom": {
-            "fillOpacity": 0
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "single" }
-      },
+      "title": "Average Price over time (All Platforms)",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 18 },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2 }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
       "targets": [
-        {
-          "refId": "A",
-          "expr": "ticket_avg_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\", source=\"SeatGeek\"}",
-          "legendFormat": "SeatGeek",
-          "datasource": { "type": "prometheus", "uid": "prometheus" }
-        }
+        { "refId": "A", "expr": "ticket_avg_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\", source=~\"SeatGeek|Ticketmaster|StubHub|VividSeats\"}", "legendFormat": "{{source}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
       ]
     },
     {
       "type": "timeseries",
-      "title": "Median Price over time (SeatGeek)",
-      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 14 },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "currencyUSD",
-          "decimals": 2,
-          "color": { "mode": "fixed", "fixedColor": "#ff00c8" },
-          "custom": {
-            "fillOpacity": 0
-          }
-        },
-        "overrides": []
-      },
-      "options": {
-        "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true },
-        "tooltip": { "mode": "single" }
-      },
+      "title": "Median Price over time (All Platforms)",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 28 },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2 }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "showLegend": true }, "tooltip": { "mode": "multi" } },
       "targets": [
-        {
-          "refId": "A",
-          "expr": "ticket_median_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\", source=\"SeatGeek\"}",
-          "legendFormat": "SeatGeek",
-          "datasource": { "type": "prometheus", "uid": "prometheus" }
-        }
+        { "refId": "A", "expr": "ticket_median_price{artist=\"$artist\", venue=\"$venue\", date=\"$date\", source=~\"SeatGeek|Ticketmaster|StubHub|VividSeats\"}", "legendFormat": "{{source}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
       ]
     }
   ],
