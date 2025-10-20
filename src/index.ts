@@ -11,15 +11,12 @@ puppeteer.use(StealthPlugin());
 
 
 const BROWSER_WEBSOCKET_ENDPOINT = process.env.BRIGHT_DATA_SCRAPING_BROWSER_WEBSOCKET_ENDPOINT;
-const PAGE_URL = process.env.VIVIDSEATS_URL;
-
-if (!PAGE_URL) {
-    throw new Error('Environment variable VIVIDSEATS_URL (PAGE_URL) must be set');
-}
 
 // Exported function so it can be scheduled by a separate scheduler.
-export async function runScrape(): Promise<void> {
-    console.log("🚀 Starting the scraping process...");
+export async function runScrape(url: string, site?: string): Promise<void> {
+    if (!url) throw new Error('runScrape requires a URL');
+    const siteSlug = (site || 'unknown').toLowerCase().replace(/[^a-z0-9-_]/g, '_');
+    console.log(`🚀 Starting the scraping process for ${siteSlug} — ${url}`);
     let browser: Browser | undefined;
     try {
         console.log("🌐 Connecting to the Scraping Browser...");
@@ -29,13 +26,12 @@ export async function runScrape(): Promise<void> {
         console.log("✅ Successfully connected to the browser!");
 
         const page = await browser.newPage();
-        console.log("🌍 Navigating to the test URL...");
+        console.log("🌍 Navigating to the target URL...");
 
-        // after: const page = await browser.newPage();
         await page.setViewport({ width: 1366, height: 768, deviceScaleFactor: 1 });
 
         // Make sure the DOM has laid out
-        await page.goto(PAGE_URL!, { waitUntil: 'networkidle2', timeout: 60_000 });
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 60_000 });
         await page.waitForSelector('body', { timeout: 15_000 });
 
         // (optional) sanity check & fallback
@@ -52,12 +48,7 @@ export async function runScrape(): Promise<void> {
             );
         }
 
-        // now it’s safe to screenshot
-        await page.screenshot({ path: 'page.png', fullPage: true, captureBeyondViewport: true });
-
         const client = await page.createCDPSession();
-        // PAGE_URL is checked above; use non-null assertion to satisfy TS
-        await page.goto(PAGE_URL!, { timeout: 2 * 60 * 1000 });
 
         // 'Captcha.waitForSolve' is a non-standard/untyped CDP command for this project.
         // Puppeteer's CDP `send` is strongly typed and doesn't include this command, so
@@ -68,20 +59,36 @@ export async function runScrape(): Promise<void> {
         const status = captchaResult?.status ?? 'unknown';
         console.log(`Captcha status: ${status}`);
 
-    console.log("📸 Taking a screenshot of the page...");
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const artifactsDir = path.join(process.cwd(), 'artifacts', timestamp);
-    fs.mkdirSync(artifactsDir, { recursive: true });
-    const screenshotPath = path.join(artifactsDir, 'page.png');
-    const screenshotBuffer = await page.screenshot({ fullPage: true }) as Buffer;
-    fs.writeFileSync(screenshotPath, screenshotBuffer);
-    console.log(`✅ Screenshot saved as '${screenshotPath}'!`);
+        console.log("📸 Taking a screenshot of the page...");
+            function getPstTimestamp() {
+                const now = new Date();
+                const parts = new Intl.DateTimeFormat('en-US', {
+                    timeZone: 'America/Los_Angeles',
+                    year: 'numeric', month: '2-digit', day: '2-digit',
+                    hour: '2-digit', minute: '2-digit', second: '2-digit',
+                    hour12: false,
+                }).formatToParts(now).reduce((acc: any, part) => {
+                    if (part.type !== 'literal') acc[part.type] = part.value;
+                    return acc;
+                }, {});
+                const ms = String(now.getMilliseconds()).padStart(3, '0');
+                // Format: YYYY-MM-DDTHH-mm-ss-SSS (using hyphens instead of colons)
+                return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}-${parts.minute}-${parts.second}-${ms}`;
+            }
 
-    console.log("🔍 Scraping page content...");
-    const html = await page.content();
-    const htmlPath = path.join(artifactsDir, 'page.html');
-    fs.writeFileSync(htmlPath, html, { encoding: 'utf8' });
-    console.log(`✅ HTML saved as '${htmlPath}'!`);
+            const timestamp = getPstTimestamp();
+            const artifactsDir = path.join(process.cwd(), 'artifacts', siteSlug, timestamp);
+        fs.mkdirSync(artifactsDir, { recursive: true });
+        const screenshotPath = path.join(artifactsDir, 'page.png');
+        const screenshotBuffer = await page.screenshot({ fullPage: true }) as Buffer;
+        fs.writeFileSync(screenshotPath, screenshotBuffer);
+        console.log(`✅ Screenshot saved as '${screenshotPath}'!`);
+
+        console.log("🔍 Scraping page content...");
+        const html = await page.content();
+        const htmlPath = path.join(artifactsDir, 'page.html');
+        fs.writeFileSync(htmlPath, html, { encoding: 'utf8' });
+        console.log(`✅ HTML saved as '${htmlPath}'!`);
     } catch (error) {
         console.error("❌ An error occurred during scraping:");
         // `error` is `unknown` in TS. Narrow it safely before accessing properties.
@@ -101,8 +108,18 @@ export async function runScrape(): Promise<void> {
 
 // If run directly (node src/index.ts or ts-node src/index.ts), execute once.
 if (require.main === module) {
-    // Allow an env var to run immediately on start for quick manual runs.
     (async () => {
-        await runScrape();
+        // If run directly, run all configured URLs (if present) in sequence.
+        const urls: Array<{ url: string; site: string }> = [];
+        if (process.env.STUBHUB_URL) urls.push({ url: process.env.STUBHUB_URL, site: 'stubhub' });
+        if (process.env.VIVIDSEATS_URL) urls.push({ url: process.env.VIVIDSEATS_URL, site: 'vividseats' });
+        if (process.env.TICKETMASTER_URL) urls.push({ url: process.env.TICKETMASTER_URL, site: 'ticketmaster' });
+        if (process.env.SEATGEEK_URL) urls.push({ url: process.env.SEATGEEK_URL, site: 'seatgeek' });
+
+        for (const entry of urls) {
+            await runScrape(entry.url, entry.site);
+            // small delay between runs to avoid burst behaviour
+            await new Promise((res) => setTimeout(res, 1500 + Math.random() * 2000));
+        }
     })();
 }

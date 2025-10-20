@@ -10,13 +10,28 @@ const SCHEDULE_CRON = process.env.SCHEDULE_CRON || '*/30 * * * *';
 
 console.log(`Scheduler starting — using cron expression: ${SCHEDULE_CRON}`);
 
-// Schedule the job
+// Helper to gather configured URLs
+function configuredUrls() {
+  const list: Array<{ url: string; site: string }> = [];
+  if (process.env.STUBHUB_URL) list.push({ url: process.env.STUBHUB_URL, site: 'stubhub' });
+  if (process.env.VIVIDSEATS_URL) list.push({ url: process.env.VIVIDSEATS_URL, site: 'vividseats' });
+  if (process.env.TICKETMASTER_URL) list.push({ url: process.env.TICKETMASTER_URL, site: 'ticketmaster' });
+  if (process.env.SEATGEEK_URL) list.push({ url: process.env.SEATGEEK_URL, site: 'seatgeek' });
+  return list;
+}
+
+// Schedule the job to iterate each configured url with small delay between runs
 const task = cron.schedule(SCHEDULE_CRON, async () => {
   console.log(`Job triggered at ${new Date().toISOString()}`);
-  try {
-    await runScrape();
-  } catch (err) {
-    console.error('Scheduled job failed:', err);
+  const urls = configuredUrls();
+  for (const entry of urls) {
+    try {
+      await runScrape(entry.url, entry.site);
+    } catch (err) {
+      console.error(`Scheduled job for ${entry.site} failed:`, err);
+    }
+    // small randomized delay to avoid burst behaviour
+    await new Promise((res) => setTimeout(res, 1000 + Math.random() * 2000));
   }
 });
 
@@ -24,7 +39,15 @@ const task = cron.schedule(SCHEDULE_CRON, async () => {
 if (require.main === module) {
   (async () => {
     console.log('Running immediate scrape (manual start)');
-    await runScrape();
+    const urls = configuredUrls();
+    for (const entry of urls) {
+      try {
+        await runScrape(entry.url, entry.site);
+      } catch (err) {
+        console.error(`Immediate run for ${entry.site} failed:`, err);
+      }
+      await new Promise((res) => setTimeout(res, 1000 + Math.random() * 2000));
+    }
     // Keep the scheduler running
     task.start();
   })();
