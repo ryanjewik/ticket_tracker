@@ -1,20 +1,33 @@
 {
-  "name": "tickettracker",
+  "name": "node",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "start:dev": "npx ts-node src/server.ts",
+    "dev": "npx ts-node src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ryanjewik/ticket_tracker.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/ryanjewik/ticket_tracker/issues"
+  "description": "",
+  "dependencies": {
+    "@types/node-fetch": "^2.6.13",
+    "dotenv": "^17.2.3",
+    "https-proxy-agent": "^6.0.1",
+    "node-fetch": "^2.7.0",
+    "proxy-chain": "^1.0.1",
+    "puppeteer": "^24.25.0",
+    "puppeteer-core": "^24.25.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "typescript": "^5.9.3",
+    "node-cron": "^4.0.0"
   },
-  "homepage": "https://github.com/ryanjewik/ticket_tracker#readme",
-  "description": ""
+  "devDependencies": {
+    "ts-node": "^10.9.1",
+    "@types/node": "^20.4.2"
+  }
 }
