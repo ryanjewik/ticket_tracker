@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import {siteKeyFromUrl, sitePaths } from './utils';
 import { PersistLevel, PERSIST_LEVEL, COOKIE_BLOCKLIST, isCookieAllowed, LS_ALLOW_REGEX, persistCookies, restoreCookies, persistLocalStorage, restoreLocalStorage } from './cookies_and_localstorage';
 import { waitForTicketmasterState } from './ticketmaster';
+import { waitForVividSeats } from "./vividseats";
 
 dotenv.config();
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
@@ -92,7 +93,7 @@ export async function runScrape(url: string, site: string) {
         ],
         defaultViewport: null,
       });
-      
+
   //setup the page configurations
   const page = await browser.newPage();
   await page.setUserAgent(UA);
@@ -126,6 +127,10 @@ export async function runScrape(url: string, site: string) {
       console.log('Ticketmaster state:', state);
       // small idle to let UI settle
       await delay(600 + Math.random() * 700);
+    }
+    else if (siteKey.endsWith('vividseats.com')) {
+        const state = await waitForVividSeats(page);
+        console.log('Vivid Seats state:', state);
     }
 
     // Save HTML + Screenshot (per-site folder)
