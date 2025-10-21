@@ -2,7 +2,6 @@
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
-import { runTicketmasterFlow } from './sites/ticketmasterFlow';
 
 dotenv.config();
 
@@ -125,6 +124,46 @@ async function restoreLocalStorage(page: any, siteKey: string) {
   console.log(`Restored ${Object.keys(data).length} LS keys for ${siteKey} (level=${PERSIST_LEVEL})`);
 }
 
+/** ---------- network capture ---------- */
+async function addNetworkCapture(page: any, client: any, siteDir: string) {
+  const entries: any[] = [];
+  await client.send('Network.enable');
+
+  client.on('Network.requestWillBeSent', (p: any) => {
+    entries.push({ t: Date.now(), kind: 'req', url: p.request.url, method: p.request.method });
+  });
+  client.on('Network.responseReceived', async (p: any) => {
+    const { response, requestId } = p;
+    entries.push({ t: Date.now(), kind: 'res', url: response.url, status: response.status });
+    if ([401, 403, 429].includes(response.status) ||
+        /robot|captcha|unique id|we think you/i.test(response.url + ' ' + (response.statusText || ''))) {
+      try {
+        const body = await client.send('Network.getResponseBody', { requestId });
+        const text = body?.base64Encoded ? Buffer.from(body.body, 'base64').toString('utf8') : body?.body || '';
+        const fn = path.join(siteDir, `suspicious_response_${Date.now()}.html`);
+        fs.writeFileSync(fn, text, 'utf8');
+        console.log('Saved suspicious response to', fn);
+      } catch {}
+    }
+  });
+  page.on('response', async (res: any) => {
+    try {
+      const s = res.status();
+      if (s >= 400 || /robot|captcha|unique id|we think you/i.test(res.url())) {
+        const text = await res.text().catch(() => '');
+        const fn = path.join(siteDir, `puppeteer_response_${Date.now()}.html`);
+        fs.writeFileSync(fn, text, 'utf8');
+        console.log('Saved puppeteer response to', fn);
+      }
+    } catch {}
+  });
+  page.on('requestfailed', (r: any) => console.log('request failed', r.url(), r.failure()?.errorText));
+
+  const { networkLog } = sitePaths(path.basename(siteDir));
+  process.on('exit', () => {
+    try { fs.writeFileSync(networkLog, JSON.stringify(entries, null, 2), 'utf8'); } catch {}
+  });
+}
 
 /** ---------- loose navigation for heavy pages ---------- */
 async function gotoLoose(page: any, url: string) {
@@ -166,10 +205,15 @@ export async function runScrape(url: string, site: string) {
 
   const page = await browser.newPage();
   await page.setUserAgent(UA);
+  // Bright Data remote blocks changing accept-language; only set it locally
+  if (!WSE) {
+    await page.setExtraHTTPHeaders({ 'accept-language': 'en-US,en;q=0.9' });
+  }
 
   const client = await page.target().createCDPSession();
   try { await client.send('Emulation.setTimezoneOverride', { timezoneId: TIMEZONE }); } catch {}
 
+  await addNetworkCapture(page, client, siteDir);
   await page.setCacheEnabled(false);
   page.setDefaultNavigationTimeout(NAV_TIMEOUT);
 
@@ -191,18 +235,16 @@ export async function runScrape(url: string, site: string) {
     await page.mouse.wheel({ deltaY: 200 });
     await delay(300 + Math.random() * 700);
 
-
-    const siteHost = new URL(url).hostname;
-    const siteDir = path.join('.session_data', siteHost.replace(/^www\./, ''));
-
-    // ---- Ticketmaster special flow ----
-    if (site === 'ticketmaster') {
-        try {
-            await runTicketmasterFlow(page, siteDir);
-        } catch (err) {
-            console.error('Ticketmaster flow failed:', err);
-        }
-    }
+    // sanity
+    const jsChecks = await page.evaluate(() => ({
+      hasWindow: typeof window === 'object',
+      webdriver: (navigator as any).webdriver || false,
+      ua: navigator.userAgent,
+      cookies: document.cookie,
+      localStorageLen: (() => { try { return Object.keys(localStorage).length; } catch { return -1; } })(),
+      docReady: document.readyState,
+    }));
+    console.log(`JS checks for ${site}:`, jsChecks);
 
     // Save HTML + Screenshot (per-site folder)
     const html = await page.content();
