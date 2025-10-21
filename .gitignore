@@ -8,6 +8,8 @@ build/
 
 .env
 node_modules/
+.session_data/
+artifacts/
 
 ### STS ###
 .apt_generated

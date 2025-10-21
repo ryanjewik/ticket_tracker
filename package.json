@@ -17,17 +17,18 @@
     "@types/node-fetch": "^2.6.13",
     "dotenv": "^17.2.3",
     "https-proxy-agent": "^6.0.1",
+    "node-cron": "^4.0.0",
     "node-fetch": "^2.7.0",
     "proxy-chain": "^1.0.1",
     "puppeteer": "^24.25.0",
     "puppeteer-core": "^24.25.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
-    "typescript": "^5.9.3",
-    "node-cron": "^4.0.0"
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
-    "ts-node": "^10.9.1",
-    "@types/node": "^20.4.2"
+    "@types/node": "^20.4.2",
+    "@types/puppeteer": "^5.4.7",
+    "ts-node": "^10.9.1"
   }
 }
