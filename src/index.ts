@@ -2,6 +2,7 @@
 import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
+// import { scrapeTicketmasterFlow } from './sites/ticketmaster_flow';
 
 dotenv.config();
 
@@ -175,7 +176,74 @@ async function gotoLoose(page: any, url: string) {
   await page.waitForNetworkIdle?.({ idleTime: 1000, timeout: 6000 }).catch(() => {});
 }
 
-/** ---------- public API for server.ts ---------- */
+/** Human-like pauses and soft scrolling */
+async function humanJitter(page: any) {
+  try { await page.mouse.wheel({ deltaY: 250 + Math.round(Math.random() * 300) }); } catch {}
+  await delay(200 + Math.random() * 300);
+  try { await page.mouse.move(100 + Math.random() * 400, 120 + Math.random() * 200); } catch {}
+}
+
+/** Wait for the page to really finish loading heavy client-side UIs */
+async function waitForPageStable(page: any, opts: { timeoutMs?: number } = {}) {
+  const { timeoutMs = 45000 } = opts;
+  const start = Date.now();
+
+  // 1) Document complete (best-effort)
+  await page.waitForFunction(
+    () => document.readyState === 'complete' || document.readyState === 'interactive',
+    { timeout: Math.min(10000, timeoutMs) }
+  ).catch(() => {});
+
+  // 2) A bit of network idle (not always available)
+  // @ts-ignore - optional in recent Puppeteer
+  await page.waitForNetworkIdle?.({ idleTime: 1200, timeout: 8000 }).catch(() => {});
+
+  // 3) Repeatedly ensure no obvious spinners/overlays are visible
+  const spinnerSel = '[aria-busy="true"], [role="progressbar"], [data-testid*="spinner" i], [class*="spinner" i], [class*="loading" i]';
+  while (Date.now() - start < timeoutMs) {
+    const hasSpinner = await page.$(spinnerSel).then((n: any) => !!n).catch(() => false);
+
+    // Some sites render an explicit "Loading" text overlay
+    const hasLoadingText = await page.evaluate(() => /loading/i.test(document.body?.innerText || ''));
+
+    if (!hasSpinner && !hasLoadingText) {
+      // Double animation frame to settle layout/layout-shift
+      await page.evaluate(
+        () => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())))
+      ).catch(() => {});
+      break;
+    }
+
+    await humanJitter(page);
+  }
+
+  // 4) One last small idle
+  await delay(300 + Math.random() * 400);
+}
+
+
+/** ---------- Ticketmaster inventory/unavailable wait ---------- */
+async function waitForTicketmasterState(page: any): Promise<'inventory'|'unavailable'|'unknown'> {
+  const timeoutMs = 35000;
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const res = await page.evaluate(() => {
+      const text = document.body?.innerText || '';
+      const hasInventoryText = /LOWEST PRICE|BEST SEATS|Verified Resale Ticket|GENERAL ADMISSION|Price includes fees/i.test(text);
+      const hasUnavailable = /tickets are not currently available online|no tickets currently available/i.test(text);
+      const priceUI = !!document.querySelector('input[type="range"], [data-qa*="price" i], [aria-label*="price" i]');
+      const ticketCards = document.querySelectorAll('[data-qa*="ticket" i], [data-testid*="ticket" i], [class*="Ticket" i]').length > 0;
+      return { hasInventory: hasInventoryText || priceUI || ticketCards, hasUnavailable };
+    });
+    if (res.hasUnavailable) return 'unavailable';
+    if (res.hasInventory) return 'inventory';
+    try { await new Promise(r => setTimeout(r, 800)); } catch {}
+    try { await page.mouse.wheel({ deltaY: 400 }); } catch {}
+  }
+  return 'unknown';
+}
+
+
 export async function runScrape(url: string, site: string) {
   const siteKey = siteKeyFromUrl(url);
   const { siteDir } = sitePaths(siteKey);
@@ -186,7 +254,8 @@ export async function runScrape(url: string, site: string) {
   const UA = process.env.USER_AGENT ||
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119 Safari/537.36';
 
-  console.log(`\n--- Starting scrape for ${site} at ${url} ---`);
+  console.log(`
+--- Starting scrape for ${site} at ${url} ---`);
 
   const puppeteerLib = WSE ? await import('puppeteer-core') : await import('puppeteer');
   const browser = WSE
@@ -234,6 +303,29 @@ export async function runScrape(url: string, site: string) {
     await delay(600 + Math.random() * 900);
     await page.mouse.wheel({ deltaY: 200 });
     await delay(300 + Math.random() * 700);
+
+    await waitForPageStable(page, { timeoutMs: 45000 });
+
+    // Ticketmaster specific: wait until either inventory loads or a definitive unavailable banner appears
+    if (siteKey.endsWith('ticketmaster.com')) {
+      const state = await waitForTicketmasterState(page);
+      console.log('Ticketmaster state:', state);
+      // small idle to let UI settle
+      await delay(600 + Math.random() * 700);
+    }
+
+    // If this is a Ticketmaster homepage or search-flow, run the interactive flow
+    // (temporarily disabled Ticketmaster interactive flow)
+    // if (site === 'ticketmaster' && process.env.TM_SEARCH_FLOW === 'true') {
+    //   await scrapeTicketmasterFlow(page, {
+    //     artist: process.env.ARTIST_NAME || 'Lamp',
+    //     dateISO: process.env.EVENT_DATE || '2025-11-07',
+    //     venue: process.env.VENUE_NAME || 'House of Blues Anaheim',
+    //     city: process.env.VENUE_CITY || 'Anaheim',
+    //     state: process.env.VENUE_STATE || 'CA',
+    //     siteDir,
+    //   });
+    // }
 
     // sanity
     const jsChecks = await page.evaluate(() => ({
