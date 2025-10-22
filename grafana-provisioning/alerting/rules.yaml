@@ -1,0 +1,111 @@
+apiVersion: 1
+groups:
+  - orgId: 1
+    name: ticket-rules
+    folder: Tickets
+    interval: 1m
+    rules:
+      - uid: min-below-40
+        title: Min price below $40
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 3600, to: 0 }   # look back 1h
+            datasourceUid: PROM
+            model:
+              editorMode: code
+              expr: max without(scraped_at) (ticket_min_price)
+              instant: false
+              interval: ""
+              legendFormat: "__auto"
+              range: true
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              settings: { mode: series }
+              refId: B
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: lt, params: [40] }
+              refId: C
+        for: 1h
+        noDataState: NoData
+        execErrState: Error
+        labels:
+          team: tickets
+        annotations:
+          summary: Low price (< $40) for {{ $labels.source }}
+          description: Min price for {{ $labels.source }} {{ $labels.url }} < $40
+
+      - uid: avg-drop-20pct
+        title: Average price dropped ≥20% (1h)
+        condition: F
+        data:
+          - refId: A
+            relativeTimeRange: { from: 3600, to: 0 }   # 1h current window
+            datasourceUid: PROM
+            model:
+              editorMode: code
+              expr: avg_over_time((max without(scraped_at) (ticket_avg_price))[1h:])
+              instant: false
+              interval: ""
+              legendFormat: "__auto"
+              range: true
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              settings: { mode: series }
+              refId: B
+          - refId: C
+            relativeTimeRange: { from: 43200, to: 0 }  # 12h baseline
+            datasourceUid: PROM
+            model:
+              editorMode: code
+              expr: avg_over_time((max without(scraped_at) (ticket_avg_price))[12h:])
+              instant: false
+              interval: ""
+              legendFormat: "__auto"
+              range: true
+              refId: C
+          - refId: D
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: C
+              reducer: last
+              settings: { mode: series }
+              refId: D
+          - refId: E
+            datasourceUid: __expr__
+            model:
+              type: math
+              expression: $B / $D
+              refId: E
+          - refId: F
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: E
+              conditions:
+                - evaluator: { type: lt, params: [0.8] }
+              refId: F
+        for: 1h
+        noDataState: NoData
+        execErrState: Error
+        labels:
+          team: tickets
+        annotations:
+          summary: Avg price dropped ≥20% for {{ $labels.source }}
+          description: Current 1h avg vs 12h baseline < 0.8

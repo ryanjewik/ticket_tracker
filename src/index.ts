@@ -3,8 +3,13 @@ import path from 'path';
 import dotenv from 'dotenv';
 import {siteKeyFromUrl, sitePaths } from './utils';
 import { PersistLevel, PERSIST_LEVEL, COOKIE_BLOCKLIST, isCookieAllowed, LS_ALLOW_REGEX, persistCookies, restoreCookies, persistLocalStorage, restoreLocalStorage } from './cookies_and_localstorage';
-import { waitForTicketmasterState } from './ticketmaster';
-import { waitForVividSeats } from "./vividseats";
+import { waitForTicketmasterState } from './sites/ticketmaster';
+import { waitForVividSeats } from "./sites/vividseats";
+import { parseStubhub } from './parsers/parse_stubhub';
+import { ensureMetricsServer, reportMetrics } from './metrics';
+import { parseTicketmaster } from './parsers/parse_ticketmaster';
+import { parseVividSeats } from './parsers/parse_vividseats';
+
 
 dotenv.config();
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
@@ -102,6 +107,7 @@ export async function runScrape(url: string, site: string) {
   await page.setCacheEnabled(false);
   page.setDefaultNavigationTimeout(NAV_TIMEOUT);
 
+
   //go to page, set cookies/local storage, human delays, get the html then save the cookies/local storage
   try {
     //go to page
@@ -121,27 +127,68 @@ export async function runScrape(url: string, site: string) {
     await delay(300 + Math.random() * 700);
     await waitForPageStable(page, { timeoutMs: 45000 });
 
-    // Ticketmaster specific: wait until either inventory loads or a definitive unavailable banner appears
+    //perform parsing and specific page handling
     if (siteKey.endsWith('ticketmaster.com')) {
       const state = await waitForTicketmasterState(page);
       console.log('Ticketmaster state:', state);
-      // small idle to let UI settle
       await delay(600 + Math.random() * 700);
+      const html = await page.content();
+      const stats = parseTicketmaster(html);
+
+      console.log(
+        `Ticketmaster prices: count=${stats.count}, avg=${stats.avg.toFixed(2)}, ` +
+        `median=${stats.median.toFixed(2)}, min=${stats.min.toFixed(2)}`
+      );
+      await reportMetrics({
+        source: 'Ticketmaster',
+        url,
+        scrapedAtISO: new Date().toISOString(),
+        count: stats.count,
+        avg: stats.avg,
+        median: stats.median,
+        min: stats.min,
+      });
     }
     else if (siteKey.endsWith('vividseats.com')) {
         const state = await waitForVividSeats(page);
         console.log('Vivid Seats state:', state);
+        const html = await page.content();
+        const stats = parseVividSeats(html);
+
+        console.log(
+          `Vivid Seats prices: count=${stats.count}, avg=${stats.avg.toFixed(2)}, ` +
+          `median=${stats.median.toFixed(2)}, min=${stats.min.toFixed(2)}`
+        );
+
+        await reportMetrics({
+          source: 'VividSeats',
+          url,
+          scrapedAtISO: new Date().toISOString(), // if you kept this label; recommended to drop for prod
+          count: stats.count,
+          avg: stats.avg,
+          median: stats.median,
+          min: stats.min,
+        });
     }
+    else if (siteKey.endsWith('stubhub.com')) {
+        const html = await page.content();
+        const stats = parseStubhub(html);
 
-    // Save HTML + Screenshot (per-site folder)
-    const html = await page.content();
-    const htmlPath = path.join(siteDir, `page_${Date.now()}.html`);
-    fs.writeFileSync(htmlPath, html, 'utf8');
-    console.log('Saved HTML:', htmlPath);
+        console.log(
+          `StubHub prices: count=${stats.count}, avg=${stats.avg.toFixed(2)}, ` +
+          `median=${stats.median.toFixed(2)}, min=${stats.min.toFixed(2)}`
+        );
 
-    const screenshotPath = path.join(siteDir, `screenshot_${Date.now()}.png`) as `${string}.png`;
-    await page.screenshot({ path: screenshotPath, fullPage: true });
-    console.log('Saved screenshot:', screenshotPath);
+        await reportMetrics({
+          source: 'StubHub', 
+          url,
+          scrapedAtISO: new Date().toISOString(),
+          count: stats.count,
+          avg: stats.avg,
+          median: stats.median,
+          min: stats.min,
+        });
+    }
 
     // Persist neutral prefs for next run
     await persistCookies(page, siteKey);
@@ -161,7 +208,6 @@ if (require.main === module) {
       { site: 'stubhub', url: process.env.STUBHUB_URL },
       { site: 'vividseats', url: process.env.VIVIDSEATS_URL },
       { site: 'ticketmaster', url: process.env.TICKETMASTER_URL },
-      { site: 'seatgeek', url: process.env.SEATGEEK_URL },
     ].filter(v => v.url);
     for (const { site, url } of envUrls) {
       await runScrape(url!, site);

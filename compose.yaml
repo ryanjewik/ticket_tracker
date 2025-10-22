@@ -1,67 +1,64 @@
-services:
-  app:
-    build: .
-    container_name: ticketwatch-app
-    env_file:
-      - .env
-    environment:
-      SPRING_DOCKER_COMPOSE_ENABLED: "false"
-    ports:
-      - "8080:8080"
-    restart: unless-stopped
-    volumes:
-      - ./scraper_output:/home/app
+version: "3.9"
 
-  prom-init:
-    image: busybox
-    command: ["sh","-c","mkdir -p /prometheus && chown -R 65534:65534 /prometheus && ls -aln /prometheus"]
+services:
+  scraper:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: scraper
+    environment:
+      - NODE_ENV=production
+      - SCRAPER_METRICS_PORT=9464
+      # add your own envs for WSE, proxies, etc:
+      # - BRIGHTDATA_WSE_URL=wss://brd.superproxy.io:9222?token=...
+      # - PUPPETEER_DEBUG=1
+    ports:
+      - "9464:9464"           # expose /metrics to Prometheus
     volumes:
-      - promdata:/prometheus
-    restart: "no"
+      - ./data:/app/data
+      - ./session:/app/.session_data
+      - ./.env:/app/.env:ro   # your secrets/config
+    restart: unless-stopped
 
   prometheus:
-    image: prom/prometheus:v2.54.1
+    image: prom/prometheus:v2.55.1
     container_name: prometheus
-    user: "65534:65534"   # non-root (good for prod)
-    depends_on:
-      prom-init:
-        condition: service_completed_successfully
     command:
       - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.path=/prometheus
-      - --storage.tsdb.retention.time=180d
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
     ports:
       - "9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - promdata:/prometheus
+      - prom_data:/prometheus
+    depends_on:
+      - scraper
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:11.1.0
+    image: grafana/grafana:11.2.0
     container_name: grafana
-    environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
-      GF_SMTP_ENABLED: true
-      GF_SMTP_HOST: smtp.ryanhideosmtp.com:587
-      GF_SMTP_FROM_ADDRESS: contact@ryanhideosmtp.com
-      GF_SMTP_SKIP_VERIFY: true
-      GF_SMTP_STARTTLS_POLICY: 'OpportunisticStartTLS'
-      # Uncomment and set these if your SMTP server requires authentication:
-      # GF_SMTP_USER: your_smtp_username
-      # GF_SMTP_PASSWORD: your_smtp_password
     ports:
       - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      # ✅ SMTP so Grafana can send emails
+      - GF_SMTP_ENABLED=true
+      - GF_SMTP_HOST=mail.ryanhideosmtp.com:587
+      - GF_SMTP_USER=alerts@ryanhideosmtp.com
+      - GF_SMTP_PASSWORD=REPLACE_ME
+      - GF_SMTP_FROM=alerts@ryanhideosmtp.com
+      - GF_SMTP_STARTTLS_POLICY=OpportunisticStartTLS
     volumes:
-      - grafdata:/var/lib/grafana
       - ./grafana-provisioning/datasources:/etc/grafana/provisioning/datasources:ro
       - ./grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
       - ./grafana-provisioning/alerting:/etc/grafana/provisioning/alerting:ro
+      - ./grafana-provisioning/plugins:/etc/grafana/provisioning/plugins:ro
     depends_on:
       - prometheus
     restart: unless-stopped
-
 volumes:
-  promdata:
-  grafdata:
+  prom_data:
+  grafana_data:
