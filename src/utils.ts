@@ -3,10 +3,13 @@ import path from 'path';
 
 const ROOT_DIR = path.resolve(process.cwd(), '.session_data');
 
-function ensureDir(p: string) {
-  if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
+export function ensureDir(dir: string) {
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+  } catch (err: any) {
+    if (err?.code !== 'EEXIST') throw err;
+  }
 }
-
 // naive eTLD+1 (last two labels is fine for these domains)
 function siteKeyFromUrl(url: string) {
   const { hostname } = new URL(url);
@@ -14,15 +17,31 @@ function siteKeyFromUrl(url: string) {
   return parts.length >= 2 ? parts.slice(-2).join('.') : hostname;
 }
 
-function sitePaths(siteKey: string) {
-  const siteDir = path.join(ROOT_DIR, siteKey);
+export type SitePaths = {
+  baseDir: string;
+  siteDir: string;
+  cookies: string; // JSON file path for cookies
+  ls: string;      // JSON file path for localStorage
+};
+
+export function sitePaths(siteKey: string): SitePaths {
+  // Allow override of the base dir; default to ".session_data" under the project cwd
+  const baseDir = process.env.SESSION_BASE_DIR
+    ? path.resolve(process.env.SESSION_BASE_DIR)
+    : path.join(process.cwd(), '.session_data');
+
+  const siteDir = path.join(baseDir, siteKey);
   ensureDir(siteDir);
-  return {
-    siteDir,
-    cookies: path.join(siteDir, 'cookies.json'),
-    ls: path.join(siteDir, 'localstorage.json'),
-    networkLog: path.join(siteDir, 'network_log.json'),
-  };
+
+  // Files we read/write for persistence
+  const cookies = path.join(siteDir, 'cookies.json');
+  const ls = path.join(siteDir, 'localstorage.json');
+
+  // Ensure their parent dirs exist (siteDir already exists; this is belt & suspenders)
+  ensureDir(path.dirname(cookies));
+  ensureDir(path.dirname(ls));
+
+  return { baseDir, siteDir, cookies, ls };
 }
 
 function saveJSON(p: string, v: any) {
@@ -38,4 +57,4 @@ function readJSON<T = any>(p: string): T | null {
   }
 }
 
-export { ROOT_DIR, siteKeyFromUrl, sitePaths, saveJSON, readJSON };
+export { ROOT_DIR, siteKeyFromUrl, saveJSON, readJSON };

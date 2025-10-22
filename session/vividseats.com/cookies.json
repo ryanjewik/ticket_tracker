@@ -1,0 +1,16 @@
+[
+  {
+    "name": "locale",
+    "value": "en-US",
+    "domain": "www.vividseats.com",
+    "path": "/",
+    "expires": -1,
+    "size": 11,
+    "httpOnly": false,
+    "secure": true,
+    "session": true,
+    "priority": "Medium",
+    "sameParty": false,
+    "sourceScheme": "Secure"
+  }
+]
